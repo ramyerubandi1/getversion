@@ -22,11 +22,11 @@ jobs:
         with:
           repository: ramyerubandi1/docs
           token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access
-          path: docs  # Checkout into a subdirectory
+          path: charts  # Checkout into a subdirectory
 
       - name: Copy latest `Chart.yaml`
         run: |
-          cp Chart.yaml docs/charts/nginx/Chart.yaml
+          cp Chart.yaml charts/nginx/Chart.yaml
 
       - name: Check if `Chart.yaml` has changed
         id: check_changes
