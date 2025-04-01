@@ -26,7 +26,7 @@ jobs:
 
       - name: Copy latest `Chart.yaml`
         run: |
-          cp getversion/charts/nginx/Chart.yaml docs/charts/nginx/Chart.yaml
+          cp Chart.yaml docs/charts/nginx/Chart.yaml
 
       - name: Check if `Chart.yaml` has changed
         id: check_changes
