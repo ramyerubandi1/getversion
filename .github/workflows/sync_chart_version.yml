@@ -17,6 +17,10 @@ jobs:
           repository: ramyerubandi1/docs
           token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access to docs repo
 
+      - name: Remove existing `Chart.yaml`
+        run: |
+          rm -f charts/nginx/Chart.yaml
+
       - name: Fetch latest `Chart.yaml` from `getversion`
         run: |
           mkdir -p charts/nginx  # Ensure the target directory exists
