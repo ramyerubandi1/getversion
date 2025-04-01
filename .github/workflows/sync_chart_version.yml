@@ -26,10 +26,13 @@ jobs:
         git clone https://github.com/ramyerubandi1/docs.git
         cd docs
         git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/ramyerubandi1/docs.git
+        ls -all
 
 
     - name: Ensure target directory exists
       run: |
+        echo "second docs"
+        ls -all
         mkdir -p docs/charts/nginx  # Ensures the correct directory exists
 
     - name: Copy Chart.yaml to docs repo
