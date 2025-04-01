@@ -1,11 +1,11 @@
-name: Sync Helm Chart
+name: Sync Chart.yaml to docs
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'Chart.yaml'  # Triggers only when Chart.yaml changes in getversion repo
+      - 'Chart.yaml'  # Trigger only when Chart.yaml changes
 
 jobs:
   sync_chart:
@@ -14,23 +14,24 @@ jobs:
       - name: Checkout `docs` repository
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GH_PAT }}
+          repository: ramyerubandi1/docs
+          token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access to docs repo
 
-      - name: Fetch `Chart.yaml` from `getversion`
+      - name: Fetch latest `Chart.yaml` from `getversion`
         run: |
-          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o getversion_Chart.yaml
+          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o new_Chart.yaml
 
-      - name: Compare `Chart.yaml` files
+      - name: Compare and update `Chart.yaml` in docs
         run: |
-          if ! cmp -s getversion_Chart.yaml charts/nginx/Chart.yaml; then
-            echo "Chart.yaml has changed. Updating..."
-            cp getversion_Chart.yaml charts/nginx/Chart.yaml
+          if ! cmp -s new_Chart.yaml charts/nginx/Chart.yaml; then
+            echo "Updating Chart.yaml in docs repository..."
+            mv new_Chart.yaml charts/nginx/Chart.yaml
             echo "CHART_UPDATED=true" >> $GITHUB_ENV
           else
             echo "No changes detected."
           fi
 
-      - name: Commit and push changes
+      - name: Commit and push changes to `docs`
         if: env.CHART_UPDATED == 'true'
         run: |
           git config --global user.name "ramy"
