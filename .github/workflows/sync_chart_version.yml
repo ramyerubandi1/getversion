@@ -1,12 +1,14 @@
-name: Sync Helm Chart Version
+name: Sync Helm Chart
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'  # Runs every 10 minutes
-  workflow_dispatch: # Allows manual trigger
+  push:
+    branches:
+      - main
+    paths:
+      - 'Chart.yaml'  # Triggers only when Chart.yaml changes in getversion repo
 
 jobs:
-  sync_version:
+  sync_chart:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout `docs` repository
@@ -14,32 +16,25 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
-      - name: Fetch Chart version from `getversion`
+      - name: Fetch `Chart.yaml` from `getversion`
         run: |
-          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml > getversion_chart.yaml
-          GETVERSION_VERSION=$(grep 'version:' getversion_chart.yaml | awk '{print $2}')
-          echo "GETVERSION_VERSION=$GETVERSION_VERSION" >> $GITHUB_ENV
+          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o getversion_Chart.yaml
 
-      - name: Fetch Chart version from `docs`
+      - name: Compare `Chart.yaml` files
         run: |
-          DOCS_VERSION=$(grep 'version:' charts/nginx/Chart.yaml | awk '{print $2}')
-          echo "DOCS_VERSION=$DOCS_VERSION" >> $GITHUB_ENV
-
-      - name: Compare versions and update if needed
-        run: |
-          if [ "$GETVERSION_VERSION" != "$DOCS_VERSION" ]; then
-            echo "Updating Chart.yaml version in docs repo"
-            sed -i "s/version: $DOCS_VERSION/version: $GETVERSION_VERSION/" charts/nginx/Chart.yaml
-            echo "VERSION_UPDATED=true" >> $GITHUB_ENV
+          if ! cmp -s getversion_Chart.yaml charts/nginx/Chart.yaml; then
+            echo "Chart.yaml has changed. Updating..."
+            cp getversion_Chart.yaml charts/nginx/Chart.yaml
+            echo "CHART_UPDATED=true" >> $GITHUB_ENV
           else
-            echo "No update needed"
+            echo "No changes detected."
           fi
 
       - name: Commit and push changes
-        if: env.VERSION_UPDATED == 'true'
+        if: env.CHART_UPDATED == 'true'
         run: |
           git config --global user.name "ramy"
           git config --global user.email "rmrbnd@gmail.com"
           git add charts/nginx/Chart.yaml
-          git commit -m "Sync Chart.yaml version to ${{ env.GETVERSION_VERSION }}"
+          git commit -m "Sync Chart.yaml from getversion repo"
           git push origin main
