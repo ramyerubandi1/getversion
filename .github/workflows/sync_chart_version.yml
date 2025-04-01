@@ -1,57 +1,40 @@
-name: Publish Helm Chart
+name: Sync Chart.yaml Changes to Docs Repo
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - 'Chart.yaml'
-  pull_request:
+      - 'Chart.yaml'  # Trigger workflow only if Chart.yaml is changed
     branches:
-      - main
-    paths:
-      - 'Chart.yaml'
+      - main  # Or whatever branch you are working with
 
 jobs:
-  build:
+  sync-changes:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_PAT }}
+    - name: Checkout getversion repository
+      uses: actions/checkout@v2
+    
+    - name: Set up Git
+      run: |
+        git config user.name "Your Name"
+        git config user.email "your-email@example.com"
 
-      # Checkout another repository if needed (remove if not applicable)
-      - name: Checkout other repository (if required)
-        uses: actions/checkout@v3
-        with:
-          repository: 'ramyerubandi1/docs'  # Replace with the actual repo name
-          path: 'charts/nginx/Chart.yaml'  # Specify the folder where the other repo will be checked out
+    - name: Clone docs repository
+      run: |
+        git clone https://github.com/ramyerubandi1/docs.git
+        cd docs
+        git remote set-url origin https://github.com/ramyerubandi1/docs.git
 
-
-      - name: Get current chart version
-        id: get_version
-        run: |
-          # If the file is in another repo, adjust the path to the correct location
-          VERSION=$(grep 'version:' ./charts/nginx/Chart.yaml | awk '{print $2}')
-          echo "Current chart version: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Increment Chart Version
-        id: increment_version
-        run: |
-          VERSION=$(echo ${{ env.VERSION }} | awk -F. -v OFS=. '{$NF++; print $0}')
-          echo "New version: $VERSION"
-          # Make sure the correct path is used if the file is in another repo/folder
-          sed -i "s/version: ${{ env.VERSION }}/version: $VERSION/" ./charts/nginx/Chart.yaml
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Commit and Push Changes
-        run: |
-          git config --global user.name "ramy"
-          git config --global user.email "rmrbnd@gmail.com"
-          git add docs/
-          git commit -m "Auto-publish Helm chart version ${{ env.VERSION }}" || echo "No changes to commit"
-          
-          # Use GITHUB_TOKEN for authentication (built-in token provided by GitHub Actions)
-          git push origin main || echo "No changes to push"
+    - name: Copy Chart.yaml to docs repo
+      run: |
+        cp Chart.yaml ../docs/charts/nginx/Chart.yaml
+    
+    - name: Commit and push changes to docs repo
+      run: |
+        cd docs
+        git add charts/nginx/Chart.yaml
+        git commit -m "Update nginx Chart.yaml from getversion repository"
+        git push origin main  # Or the branch you want to push to
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
