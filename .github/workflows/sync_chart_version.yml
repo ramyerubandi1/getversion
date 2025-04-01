@@ -17,22 +17,23 @@ jobs:
           repository: ramyerubandi1/docs
           token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access to docs repo
 
-      - name: Remove existing `Chart.yaml`
-        run: |
-          rm -f charts/nginx/Chart.yaml
-
       - name: Fetch latest `Chart.yaml` from `getversion`
         run: |
-          mkdir -p charts/nginx  # Ensure the target directory exists
-          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o charts/nginx/Chart.yaml
+          if [ -f charts/nginx/Chart.yaml ]; then
+            curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o charts/nginx/Chart.yaml
+          else
+            echo "Chart.yaml does not exist in the docs repo. Skipping update."
+            exit 0
+          fi
 
-      - name: Compare and update `Chart.yaml` in docs
+      - name: Check if `Chart.yaml` has changed
         id: check_changes
         run: |
-          if ! git diff --quiet charts/nginx/Chart.yaml; then
-            echo "CHART_UPDATED=true" >> $GITHUB_ENV
-          else
+          if git diff --quiet charts/nginx/Chart.yaml; then
             echo "No changes detected."
+            echo "CHART_UPDATED=false" >> $GITHUB_ENV
+          else
+            echo "CHART_UPDATED=true" >> $GITHUB_ENV
           fi
 
       - name: Commit and push changes to `docs`
@@ -40,6 +41,5 @@ jobs:
         run: |
           git config --global user.name "ramy"
           git config --global user.email "rmrbnd@gmail.com"
-          git add charts/nginx/Chart.yaml
-          git commit -m "Sync Chart.yaml from getversion repo"
+          git commit -am "Sync Chart.yaml from getversion repo"
           git push origin main
