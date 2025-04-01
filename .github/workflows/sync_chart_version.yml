@@ -11,7 +11,6 @@ on:
       - main
     paths:
       - 'Chart.yaml'
-    
 
 jobs:
   build:
@@ -22,14 +21,19 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
-      - name: Install Helm
-        run: |
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      # Checkout another repository if needed (remove if not applicable)
+      - name: Checkout other repository (if required)
+        uses: actions/checkout@v3
+        with:
+          repository: 'ramyerubandi1/docs'  # Replace with the actual repo name
+          path: './charts/nginx/Chart.yaml'  # Specify the folder where the other repo will be checked out
+
 
       - name: Get current chart version
         id: get_version
         run: |
-          VERSION=$(grep 'version:' charts/nginx/Chart.yaml | awk '{print $2}')
+          # If the file is in another repo, adjust the path to the correct location
+          VERSION=$(grep 'version:' ./charts/nginx/Chart.yaml | awk '{print $2}')
           echo "Current chart version: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -38,13 +42,9 @@ jobs:
         run: |
           VERSION=$(echo ${{ env.VERSION }} | awk -F. -v OFS=. '{$NF++; print $0}')
           echo "New version: $VERSION"
-          sed -i "s/version: ${{ env.VERSION }}/version: $VERSION/" charts/nginx/Chart.yaml
+          # Make sure the correct path is used if the file is in another repo/folder
+          sed -i "s/version: ${{ env.VERSION }}/version: $VERSION/" ./charts/nginx/Chart.yaml
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Package Helm Chart
-        run: |
-          helm package charts/nginx -d docs/ --version ${{ env.VERSION }}
-          helm repo index docs --url https://ramyerubandi1.github.io/docs/
 
       - name: Commit and Push Changes
         run: |
@@ -55,4 +55,3 @@ jobs:
           
           # Use GITHUB_TOKEN for authentication (built-in token provided by GitHub Actions)
           git push origin main || echo "No changes to push"
-
