@@ -28,7 +28,7 @@ jobs:
 
     - name: Copy Chart.yaml to docs repo
       run: |
-        cp Chart.yaml ../docs/charts/nginx/Chart.yaml
+        cp Chart.yaml ../docs/charts/nginx/
     
     - name: Commit and push changes to docs repo
       run: |
