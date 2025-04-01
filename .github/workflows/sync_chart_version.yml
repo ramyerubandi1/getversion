@@ -17,6 +17,7 @@ jobs:
 
     - name: Set up Git
       run: |
+        ls -all
         git config user.name "GitHub Actions"
         git config user.email "github-actions@github.com"
 
