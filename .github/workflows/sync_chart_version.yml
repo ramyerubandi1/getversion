@@ -1,50 +1,48 @@
-name: Sync Chart.yaml to Another Repo
+name: Check Version Change and Update Docs
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - 'Chart.yaml'  # Trigger only when Chart.yaml changes
+      - 'charts/nginx/Chart.yaml'  # Trigger the workflow only if Chart.yaml is changed
+  pull_request:
+    paths:
+      - 'Chart.yaml'  # Trigger the workflow when PR changes Chart.yaml
 
 jobs:
-  sync_chart:
+  version-check:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout `getversion` repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Extract version from Chart.yaml
+        id: extract_version
+        run: |
+          VERSION=$(yq e '.version' Chart.yaml)
+          echo "Extracted version: $VERSION"
+          echo "::set-output name=version::$VERSION"
+
+      - name: Checkout docs repository
+        uses: actions/checkout@v2
         with:
-          repository: ramyerubandi1/getversion
-          path: Chart.yaml  # Checkout into a subdirectory
+          repository: 'ramyerubandi1/docs'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: charts/nginx/Chart.yaml
 
-      - name: Checkout `docs` repository
-        uses: actions/checkout@v3
-        with:
-          repository: ramyerubandi1/docs
-          token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access
-          path: charts  # Checkout into a subdirectory
-
-      - name: Copy latest `Chart.yaml`
+      - name: Update version in docs repository
         run: |
-          cp -r Chart.yaml charts/nginx/Chart.yaml
+          # Change directory to the docs repository
+          
+          # Extract the version from the original Chart.yaml
+          VERSION=$(yq e '.version' ../../Chart.yaml)
+          echo "Updating version to: $VERSION"
+          # Update version in the docs' Chart.yaml
+          yq e ".version = \"$VERSION\"" -i Chart.yaml
+          # Commit and push the change
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Chart.yaml
+          git commit -m "Update version to $VERSION in Chart.yaml"
+          git push origin main  # Change branch as needed
 
-      - name: Check if `Chart.yaml` has changed
-        id: check_changes
-        run: |
-          cd docs
-          if git diff --quiet charts/nginx/Chart.yaml; then
-            echo "No changes detected."
-            echo "CHART_UPDATED=false" >> $GITHUB_ENV
-          else
-            echo "CHART_UPDATED=true" >> $GITHUB_ENV
-          fi
-
-      - name: Commit and push changes to `docs`
-        if: env.CHART_UPDATED == 'true'
-        run: |
-          cd docs
-          git config --global user.name "ramy"
-          git config --global user.email "rmrbnd@gmail.com"
-          git add charts/nginx/Chart.yaml
-          git commit -m "Sync Chart.yaml from getversion repo"
-          git push origin main
