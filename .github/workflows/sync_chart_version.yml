@@ -5,7 +5,7 @@ on:
     paths:
       - 'Chart.yaml'  # Trigger workflow only if Chart.yaml is changed
     branches:
-      - main  # Or whatever branch you are working with
+      - main  # Change this if your default branch is different
 
 jobs:
   sync-changes:
@@ -14,11 +14,11 @@ jobs:
     steps:
     - name: Checkout getversion repository
       uses: actions/checkout@v2
-    
+
     - name: Set up Git
       run: |
-        git config user.name "Your Name"
-        git config user.email "your-email@example.com"
+        git config user.name "GitHub Actions"
+        git config user.email "github-actions@github.com"
 
     - name: Clone docs repository
       run: |
@@ -26,15 +26,19 @@ jobs:
         cd docs
         git remote set-url origin https://github.com/ramyerubandi1/docs.git
 
+    - name: Ensure target directory exists
+      run: |
+        mkdir -p docs/charts/nginx  # Ensures the correct directory exists
+
     - name: Copy Chart.yaml to docs repo
       run: |
-        cp Chart.yaml ../docs/charts/nginx/
-    
+        cp Chart.yaml docs/charts/nginx/Chart.yaml
+
     - name: Commit and push changes to docs repo
       run: |
         cd docs
         git add charts/nginx/Chart.yaml
-        git commit -m "Update nginx Chart.yaml from getversion repository"
-        git push origin main  # Or the branch you want to push to
+        git commit -m "Update nginx Chart.yaml from getversion repository" || echo "No changes to commit"
+        git push origin main  # Ensure you are pushing to the correct branch
       env:
-        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
