@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'Chart.yaml'  # Trigger only when Chart.yaml changes
+      - 'charts/nginx/Chart.yaml'  # Trigger only when Chart.yaml changes
 
 jobs:
   sync_chart:
@@ -17,14 +17,16 @@ jobs:
           repository: ramyerubandi1/docs
           token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access to docs repo
 
-      - name: Fetch latest `Chart.yaml` from `getversion`
+      - name: Checkout `getversion` repository
+        uses: actions/checkout@v3
+        with:
+          repository: ramyerubandi1/getversion
+          path: getversion  # Checkout into a subdirectory
+
+      - name: Ensure directory exists and copy latest `Chart.yaml`
         run: |
-          if [ -f charts/nginx/Chart.yaml ]; then
-            curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o charts/nginx/Chart.yaml
-          else
-            echo "Chart.yaml does not exist in the docs repo. Skipping update."
-            exit 0
-          fi
+          mkdir -p charts/nginx  # Ensure the directory exists in docs repo
+          cp getversion/charts/nginx/Chart.yaml charts/nginx/Chart.yaml
 
       - name: Check if `Chart.yaml` has changed
         id: check_changes
@@ -41,5 +43,6 @@ jobs:
         run: |
           git config --global user.name "ramy"
           git config --global user.email "rmrbnd@gmail.com"
-          git commit -am "Sync Chart.yaml from getversion repo"
+          git add charts/nginx/Chart.yaml
+          git commit -m "Sync Chart.yaml from getversion repo"
           git push origin main
