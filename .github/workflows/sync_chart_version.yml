@@ -19,13 +19,13 @@ jobs:
 
       - name: Fetch latest `Chart.yaml` from `getversion`
         run: |
-          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o new_Chart.yaml
+          mkdir -p charts/nginx  # Ensure the target directory exists
+          curl -sL https://raw.githubusercontent.com/ramyerubandi1/getversion/main/charts/nginx/Chart.yaml -o charts/nginx/Chart.yaml
 
       - name: Compare and update `Chart.yaml` in docs
+        id: check_changes
         run: |
-          if ! cmp -s new_Chart.yaml charts/nginx/Chart.yaml; then
-            echo "Updating Chart.yaml in docs repository..."
-            mv new_Chart.yaml charts/nginx/Chart.yaml
+          if ! git diff --quiet charts/nginx/Chart.yaml; then
             echo "CHART_UPDATED=true" >> $GITHUB_ENV
           else
             echo "No changes detected."
@@ -36,6 +36,6 @@ jobs:
         run: |
           git config --global user.name "ramy"
           git config --global user.email "rmrbnd@gmail.com"
-          git add Chart.yaml
+          git add charts/nginx/Chart.yaml
           git commit -m "Sync Chart.yaml from getversion repo"
           git push origin main
