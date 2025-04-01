@@ -1,4 +1,4 @@
-name: Sync Chart.yaml to docs
+name: Sync Chart.yaml to Another Repo
 
 on:
   push:
@@ -11,26 +11,27 @@ jobs:
   sync_chart:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout `docs` repository
-        uses: actions/checkout@v3
-        with:
-          repository: ramyerubandi1/docs
-          token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access to docs repo
-
       - name: Checkout `getversion` repository
         uses: actions/checkout@v3
         with:
           repository: ramyerubandi1/getversion
           path: getversion  # Checkout into a subdirectory
 
-      - name: Ensure directory exists and copy latest `Chart.yaml`
+      - name: Checkout `docs` repository
+        uses: actions/checkout@v3
+        with:
+          repository: ramyerubandi1/docs
+          token: ${{ secrets.GH_PAT }}  # Ensure this PAT has write access
+          path: docs  # Checkout into a subdirectory
+
+      - name: Copy latest `Chart.yaml`
         run: |
-          mkdir -p charts/nginx  # Ensure the directory exists in docs repo
-          cp getversion/charts/nginx/Chart.yaml charts/nginx/Chart.yaml
+          cp getversion/charts/nginx/Chart.yaml docs/charts/nginx/Chart.yaml
 
       - name: Check if `Chart.yaml` has changed
         id: check_changes
         run: |
+          cd docs
           if git diff --quiet charts/nginx/Chart.yaml; then
             echo "No changes detected."
             echo "CHART_UPDATED=false" >> $GITHUB_ENV
@@ -41,6 +42,7 @@ jobs:
       - name: Commit and push changes to `docs`
         if: env.CHART_UPDATED == 'true'
         run: |
+          cd docs
           git config --global user.name "ramy"
           git config --global user.email "rmrbnd@gmail.com"
           git add charts/nginx/Chart.yaml
