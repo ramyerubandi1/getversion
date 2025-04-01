@@ -1,48 +1,58 @@
-name: Check Version Change and Update Docs
+name: Publish Helm Chart
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - 'charts/nginx/Chart.yaml'  # Trigger the workflow only if Chart.yaml is changed
+      - 'Chart.yaml'
   pull_request:
+    branches:
+      - main
     paths:
-      - 'Chart.yaml'  # Trigger the workflow when PR changes Chart.yaml
+      - 'Chart.yaml'
+    
 
 jobs:
-  version-check:
+  build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Extract version from Chart.yaml
-        id: extract_version
-        run: |
-          VERSION=$(yq e '.version' Chart.yaml)
-          echo "Extracted version: $VERSION"
-          echo "::set-output name=version::$VERSION"
-
-      - name: Checkout docs repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          repository: 'ramyerubandi1/docs'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: charts/nginx/Chart.yaml
+          token: ${{ secrets.GH_PAT }}
 
-      - name: Update version in docs repository
+      - name: Install Helm
         run: |
-          # Change directory to the docs repository
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Get current chart version
+        id: get_version
+        run: |
+          VERSION=$(grep 'version:' charts/nginx/Chart.yaml | awk '{print $2}')
+          echo "Current chart version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Increment Chart Version
+        id: increment_version
+        run: |
+          VERSION=$(echo ${{ env.VERSION }} | awk -F. -v OFS=. '{$NF++; print $0}')
+          echo "New version: $VERSION"
+          sed -i "s/version: ${{ env.VERSION }}/version: $VERSION/" charts/nginx/Chart.yaml
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Package Helm Chart
+        run: |
+          helm package charts/nginx -d docs/ --version ${{ env.VERSION }}
+          helm repo index docs --url https://ramyerubandi1.github.io/docs/
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "ramy"
+          git config --global user.email "rmrbnd@gmail.com"
+          git add docs/
+          git commit -m "Auto-publish Helm chart version ${{ env.VERSION }}" || echo "No changes to commit"
           
-          # Extract the version from the original Chart.yaml
-          VERSION=$(yq e '.version' ../../Chart.yaml)
-          echo "Updating version to: $VERSION"
-          # Update version in the docs' Chart.yaml
-          yq e ".version = \"$VERSION\"" -i Chart.yaml
-          # Commit and push the change
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add Chart.yaml
-          git commit -m "Update version to $VERSION in Chart.yaml"
-          git push origin main  # Change branch as needed
+          # Use GITHUB_TOKEN for authentication (built-in token provided by GitHub Actions)
+          git push origin main || echo "No changes to push"
 
