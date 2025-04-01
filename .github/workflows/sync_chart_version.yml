@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'charts/nginx/Chart.yaml'  # Trigger only when Chart.yaml changes
+      - 'Chart.yaml'  # Trigger only when Chart.yaml changes
 
 jobs:
   sync_chart:
