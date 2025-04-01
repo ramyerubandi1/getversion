@@ -24,7 +24,8 @@ jobs:
       run: |
         git clone https://github.com/ramyerubandi1/docs.git
         cd docs
-        git remote set-url origin https://github.com/ramyerubandi1/docs.git
+        git remote set-url origin https://${{ secrets.GH-PAT }}@github.com/ramyerubandi1/docs.git
+
 
     - name: Ensure target directory exists
       run: |
