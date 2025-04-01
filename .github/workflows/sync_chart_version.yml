@@ -38,10 +38,13 @@ jobs:
     - name: Copy Chart.yaml to docs repo
       run: |
         cp Chart.yaml docs/charts/nginx/Chart.yaml
+        cat  docs/charts/nginx/Chart.yaml
 
     - name: Commit and push changes to docs repo
       run: |
         cd docs
+        git config user.name "GitHub Actions"
+        git config user.email "github-actions@github.com"
         git add charts/nginx/Chart.yaml
         git commit -m "Update nginx Chart.yaml from getversion repository" || echo "No changes to commit"
         git push origin main  # Ensure you are pushing to the correct branch
