@@ -1,5 +1,5 @@
 apiVersion: v2
 name: my-nginx-chart
 description: A Helm chart for Kubernetes to deploy NGINX dasdaa
-version: 0.1.9
+version: 0.1.5
 appVersion: "1.19.6"
